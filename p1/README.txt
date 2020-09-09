@@ -1,0 +1,1 @@
+To run the code, place your images (*.tiff or *.jpg) in a folder called 'data' and create an empty folder 'output_imgs'. Run main.py.

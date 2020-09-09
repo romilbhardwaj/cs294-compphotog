@@ -133,8 +133,6 @@ def colorize(filepath,
         ag_displacement = align_ssd(edge_g, edge_b)
         ar_displacement = align_ssd(edge_r, edge_b)
 
-    print("{}: [{},{}]".format(filepath, ag_displacement[0], ag_displacement[1]))
-
     # Shift
     ag = shift(g, ag_displacement)
     ar = shift(r, ar_displacement)
@@ -147,12 +145,14 @@ def colorize(filepath,
         name = os.path.splitext(os.path.basename(filepath))[0]
         out_filename = 'recolorized_' + name + '.jpeg'
         out_path = os.path.join(out_base_dir, out_filename)
+        #print(f"{name}: Red [{ar_displacement[0]},{ar_displacement[1]}], Green [{ag_displacement[0]},{ag_displacement[1]}]")
+        print(f"<h3>{name}: Red [{ar_displacement[0]},{ar_displacement[1]}], Green [{ag_displacement[0]},{ag_displacement[1]}]</h3>\n<img src=\"{out_path}\" height=\"600\">")
         skio.imsave(out_path, im_out)
 
 
 if __name__ == '__main__':
     out_base_dir = 'output_imgs'
-    in_base_dir = 'example_imgs'
+    in_base_dir = 'data'
     small_images = glob(os.path.join(in_base_dir, '*.jpg'))
     large_images = glob(os.path.join(in_base_dir, '*.tif'))
     print("Found JPGs: {}".format(small_images))
@@ -161,11 +161,12 @@ if __name__ == '__main__':
     for filepath in small_images:
         colorize(filepath,
                  method='ssd',
+                 # edge_filter_fn=lambda x: x,   # Uncomment to remove edge detection
                  center_crop_margin=10,
                  out_base_dir=out_base_dir)
 
     for filename in large_images:
         colorize(filename,
                  method='pyramid',
-                 # edge_filter_fn=lambda x: x,
+                 # edge_filter_fn=lambda x: x,   # Uncomment to remove edge detection
                  out_base_dir=out_base_dir)

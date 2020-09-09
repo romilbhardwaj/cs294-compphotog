@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CS294-26 Project 1</title>
+</head>
+<body>
+<h1 style="text-align: center;">CS294-26 - Project 1 -&nbsp;Colorizing the Prokudin-Gorskii photo collection</h1>
+<p style="text-align: center;">Romil Bhardwaj</p>
+<h2 style="text-align: left;">Overview</h2>
+<p>The goal of this assignment is to take the digitized Prokudin-Gorskii glass plate images and, using image processing techniques, automatically produce a color image with as few visual artifacts as possible. In order to do this, we extract the three color channel images, place them on top of each other, and align them so that they form a single RGB color image.</p>
+<h2>Approach</h2>
+<p>1. <strong>Channel extraction:</strong> First step is to extract the three images into blue, green and red channels. This is done by splitting the input image plate into three equally sized images.</p>
+<p>2. <strong>Crop bands, if required: </strong>Using a constant crop margin, crop the channels to remove the black bands at the edges</p>
+<p>3. <strong>Compute edges for matching: </strong>While it is possible to directly align RGB images, I added edge detection to make the matching faster and more accurate. I use the sobel edge detector from sklearn.</p>
+<p>4. <strong>Run alignment: </strong>Images can be aligned by exhaustively searching for an optimal x,y displacement which minimizes the <a href="https://en.wikipedia.org/wiki/Mean_squared_error">Sum of Squared Distance</a>&nbsp;between the edges of two images. I used a search space of +-20px. However, this can get slow for larger high resolution images. To speed up SSD, we use an image pyramid which recursively computes SSD on a sub-sampled image. It reduces the search space by running SSD on a smaller image, then using the displacement estimates on a cropped region in the higher resolution image to correct the estimates and recursively repeats.</p>
+
+<h2>Notes</h2>
+<p>Cropping the black bands had mixed results - it was helpful for the smaller jpgs when directly running SSD, but it made results worse and some images would not align well.</p>
+
+<h2>Bells and Whistles</h2>
+<p>Instead of running SSD on RGB channels, I computed the edges of images and used that as a feature for alignment. This has two benefits - it reduces the runtime complexity and the output images were much sharper. For instance, compare the Melons and Emir results:</p>
+<h3>Emir with Edge Detection</h3>
+<img src="output_imgs/recolorized_emir.jpeg" height="600">
+<h3>Emir without Edge Detection</h3>
+<img src="output_imgs/recolorized_emir_noedge.jpeg" height="600">
+<h3>Melons with Edge Detection (Zoom In)</h3>
+<img src="output_imgs/recolorized_melons_noedge.jpeg" height="600">
+<h3>Melons without Edge Detection (Zoom In)</h3>
+<img src="output_imgs/recolorized_melons_noedge.jpeg" height="600">
+
+<h2>Example Images and displacements</h2>
+<h3>cathedral: Red [12,3], Green [5,2]</h3>
+<img src="output_imgs/recolorized_cathedral.jpeg" height="600">
+
+<h3>monastery: Red [3,0], Green [-3,0]</h3>
+<img src="output_imgs/recolorized_monastery.jpeg" height="600">
+
+<h3>harvesters: Red [123,18], Green [59,19]</h3>
+<img src="output_imgs/recolorized_harvesters.jpeg" height="600">
+
+<h3>train: Red [85,32], Green [42,6]</h3>
+<img src="output_imgs/recolorized_train.jpeg" height="600">
+
+<h3>self_portrait: Red [175,37], Green [77,29]</h3>
+<img src="output_imgs/recolorized_self_portrait.jpeg" height="600">
+
+<h3>onion_church: Red [107,37], Green [49,26]</h3>
+<img src="output_imgs/recolorized_onion_church.jpeg" height="600">
+
+<h3>melons: Red [179,13], Green [83,10]</h3>
+<img src="output_imgs/recolorized_melons.jpeg" height="600">
+
+<h3>workshop: Red [106,-11], Green [53,0]</h3>
+<img src="output_imgs/recolorized_workshop.jpeg" height="600">
+
+<h3>emir: Red [106,41], Green [48,23]</h3>
+<img src="output_imgs/recolorized_emir.jpeg" height="600">
+
+<h3>three_generations: Red [108,12], Green [49,15]</h3>
+<img src="output_imgs/recolorized_three_generations.jpeg" height="600">
+
+<h3>lady: Red [108,11], Green [48,7]</h3>
+<img src="output_imgs/recolorized_lady.jpeg" height="600">
+
+<h3>icon: Red [89,24], Green [40,18]</h3>
+<img src="output_imgs/recolorized_icon.jpeg" height="600">
+
+<h3>castle: Red [97,5], Green [33,2]</h3>
+<img src="output_imgs/recolorized_castle.jpeg" height="600">
+
+<h2>Extra Images</h2>
+<h3>belaia: Red [118,-34], Green [49,-16]</h3>
+<img src="output_imgs/recolorized_belaia.jpeg" height="600">
+
+<h3>perm: Red [101,-35], Green [41,-19]</h3>
+<img src="output_imgs/recolorized_perm.jpeg" height="600">
+
+<h3>stone: Red [78,8], Green [30,6]</h3>
+<img src="output_imgs/recolorized_stone.jpeg" height="600">
+</body>
+</html>
