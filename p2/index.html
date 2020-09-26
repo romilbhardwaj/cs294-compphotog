@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CS294-26 Project 1</title>
+</head>
+<body>
+<h2>CS294-26 Project 2: Fun with Filters and Frequencies</h2>
+<p>Romil Bhardwaj</p>
+<p></p>
+<h1>Part 1</h1>
+<h2>1.1 - Finite Difference Operator</h2>
+<p>The partial derivative in x and y computed as the convolution of the finite difference operator with an input image. Here's the input and the x derivative and y derivative:</p>
+<img src="outputs/filters/dx.jpg" height="400">
+<img src="outputs/filters/dy.jpg" height="400">
+<p>After computing the partial derivatives, the magnitude of the gradient can be computed as L2 distance of the x and y derivatives (ie., sqrt(dx^2 + dy^2)).</p>
+<img src="outputs/filters/gradmag.jpg" height="400">
+<p>To extract edges from this gradient magnitude image, we must threshold this image. After some fine-tuning, I used a threshold of 0.28 which gave me the following result:</p>
+<img src="outputs/filters/gradmag_thresholded.jpg" height="400">
+<h2>1.2 - Derivative of Gaussian (DoG) Filter</h2>
+<p>To remove the noise from these gradients and get more robust edges, we can use Derivative of Gaussian (DoG) filters. Gaussian filtering blurs the image, removing noise, and then we can use the finite difference operator to find edges. We observe that the edges are thicker and stronger. Here's the result:</p>
+<img src="outputs/filters/gradmag_gauss_thresholded.jpg" height="400">
+<p>In order to reduce convolution operations, we can combine the two operations in a single derivative of gaussian filter. Here's a visualization of the X and Y DoG filters:</p>
+<img src="outputs/filters/dog_x.jpg" height="400">
+<img src="outputs/filters/dog_y.jpg" height="400">
+<p>On convolving with these filters, we get the same result as with separate convolutions.</p>
+<img src="outputs/filters/gradmag_dog_thresholded.jpg" height="400">
+<h2>1.3 - Image Straightening</h2>
+<p>To straighten an image, we can compute the angle between the x and y derivatives of the images at each pixel using np.arctan2(dy/dx). This will yield the orientations at each pixel, which can then be histogrammed. Since right angles are considered to be "straight",&nbsp; we try different orientations which maximize the number of elements in the -90, +90, -180, +180 buckets. This is done by computing the histogram with np.hist(), and then comparing the histogram vector with an ideal vector (which has density 1 at -90, +90, -180 and +180)&nbsp; by taking their dot product. This gives us a score which we can use to rank different rotations. Here are the results:</p>
+<img src="outputs/straight/facade.jpg" height="600">
+<img src="outputs/straight/bldg.jpg" height="600">
+<img src="outputs/straight/beach.jpg" height="600">
+<p>Failure case - this running track at MLK Jr. School in Berkeley has curving lines on the track and a foggy horizon which makes it hard for our algorithm to find edges to straighten. </p>
+<img src="outputs/straight/race_track.jpg" height="600">
+
+<h1>Part 2</h1>
+<h2>2.1 - Image Sharpening</h2>
+<p>An image can be sharpened by boosting the higher frequencies. To get the higher frequencies, we can subtract a blurred image from the original image. This can be combined into a single unsharp filter using a weighted combination of unit impulse function and gaussian filter. The results below show the effect of the unsharp filter on sharpening an image and what happens if you blur an image and try to sharpen it again (spoiler alert: blurring is lossy, thus resharpening doesn't help and the image loses detail).</p>
+<img src="outputs/sharpening/sharpened_taj.jpeg" height="400">
+<img src="outputs/sharpening/sharpened_bldg.jpeg" height="400">
+<img src="outputs/sharpening/sharpened_beach.jpeg" height="400">
+
+<h2>2.2 - Hybrid Images</h2>
+<p>A hybrid image is a combination of two images which is interpreted differently by humans at different viewing distances. This effect is achieved by combining high frequencies from image with lower frequencies from another image. At closer distances, higher frequencies are prominent, while at larger distances lower frequencies dominate our interpretation of the image. Here are some hybrid images:</p>
+<h4>Derek Nutmeg</h4>
+<img src="outputs/hybrid/dereknutmeg.jpg" height="600">
+<h4>Luke Vader</h4>
+<img src="outputs/hybrid/lukevader.jpg" height="600">
+<h4>Failure case - Obiwan Kenobi and Palpatine. Poor alignment and Palpatine's wrinkles dominate the higher frequencies.</h4>
+<p>"Hello There." "General Palpatine!"</p>
+<img src="outputs/hybrid/palpatinekenobi.jpg" height="600">
+
+<h3>FFT Analysis for Luke Vader</h3>
+<h4>Darth Vader Image</h4>
+<table border="1" style="border-collapse: collapse; width: 100%;">
+<tbody>
+<tr>
+<td style="width: 50%; text-align: center;"><img src="outputs/hybrid/fft/im2.jpg" height="600"></td>
+<td style="width: 50%; text-align: center;"><img src="outputs/hybrid/fft/hpf_im2.jpg" height="600"></td>
+</tr>
+<tr>
+<td style="width: 50%; text-align: center;">Raw Input Darth Vader Image</td>
+<td style="width: 50%; text-align: center;">LPF Filtered Darth Vader Image - Higher frequencies are removed and lower frequencies are allowed</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Luke Skywalker Image</h4>
+<table border="1" style="border-collapse: collapse; width: 100%;">
+<tbody>
+<tr>
+<td style="width: 50%; text-align: center;"><img src="outputs/hybrid/fft/im1.jpg" height="600"></td>
+<td style="width: 50%; text-align: center;"><img src="outputs/hybrid/fft/lpf_im1.jpg" height="600"></td>
+</tr>
+<tr>
+<td style="width: 50%; text-align: center;">Raw Input Luke Skywalker Image</td>
+<td style="width: 50%; text-align: center;">HPF Filtered Luke Skywalker Image - Higher frequencies are allowed and lower frequencies are removed</td>
+</tr>
+</tbody>
+</table>
+
+<h4>Final Hybrid Image FFT</h4>
+<img src="outputs/hybrid/fft/hybrid.jpg" height="600">
+
+<h2>2.3 - Laplacian and Gaussian Stacks</h2>
+<p>I implemented Gaussian stacking by repeatedly blurring an image with a kernel of size 15 and sigma = 2. Here are the gaussian and Laplacian stacks for Salvador Dali's "Lincoln in Dalivision" and Luke Vader image from the previous part. As get deeper into the gaussian stack, the original low frequency image emerges more clearly. In the laplacian stack, we can see the higher frequency image clearly in the first few images (eg. You can see Luke skywalker more clearly at depth=1).</p>
+<h4>Lincoln - Gaussian Stack</h4>
+<img src="outputs/stacks/gaussstack_lincoln.jpeg" height="300">
+<h4>Lincoln - Laplacian Stack</h4>
+<img src="outputs/stacks/laplstack_lincoln.jpeg" height="300">
+<h4>LukeVader - Gaussian Stack</h4>
+<img src="outputs/stacks/gaussstack_lukevader.jpeg" height="300">
+<h4>LukeVader - Laplacian Stack</h4>
+<img src="outputs/stacks/laplstack_lukevader.jpeg" height="300">
+
+<h2>2.3 - Multiresolution Blending</h2>
+<p>Multiresolution blending seamlessly blends two images by using laplacian and gaussian stacks to create a smooth transition with a mask. Here are the results:</p>
+<h3>Oraple</h3>
+<img src="outputs/multires/oraple.jpg" height="300"><br>
+<img src="outputs/multires/im1stack_apple.jpeg" height="200"><br>
+<img src="outputs/multires/im2stack_apple.jpeg" height="200"><br>
+<img src="outputs/multires/maskstack_apple.jpeg" height="200">
+
+<h3>Lost travolta</h3>
+<img src="outputs/multires/travolta.jpg" height="300"><br>
+<img src="outputs/multires/im1stack_travolta.jpeg" height="200"><br>
+<img src="outputs/multires/im2stack_travolta.jpeg" height="200"><br>
+<img src="outputs/multires/maskstack_travolta.jpeg" height="200">
+
+<h3>Seasons</h3>
+<img src="outputs/multires/seasons.jpg" height="300"><br>
+<img src="outputs/multires/im1stack_summer.jpeg" height="200"><br>
+<img src="outputs/multires/im2stack_summer.jpeg" height="200"><br>
+<img src="outputs/multires/maskstack_summer.jpeg" height="200">
+</body>
+</html>
