@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CS294-26 Project 1</title>
+</head>
+<body>
+<h2>CS294-26 Project 3: Face Morphing</h2>
+<p>Romil Bhardwaj</p>
+<h2>Defining Correpondences</h2>
+<p>I wrote a short utility using plt.ginput to annotate images. Here are the annotations of my face and the target - James May.</p>
+<table>
+<tbody>
+<tr>
+<td><img src="myface_kps.jpg" height="600"></td>
+<td><img src="jamesmay_kps.jpg" height="600"></td>
+</tr>
+</tbody>
+</table>
+
+<h2>Computing the Midway Face</h2>
+<p>After computing the triangles, the midway face can be computed by setting the warp and dissolve fractions to 0.5 for the morph function. This ensures that both, the geometry and the appearance are mid-way through. Here's a old looking me: </p>
+<img src="out_midway.jpg" height="600">
+
+
+<h2>The Morph Sequence</h2>
+<p>By varying the dissolve fraction and the warp fraction from 0 to 1, we can create multiple frames for an animation which shows me morphing into captain slow. Here's a gif of the animation:</p>
+<img src="out.gif" height="600">
+
+<h2>The Mean Face of the Danes Dataset&nbsp;</h2>
+<p>Computing the mean face requires first aligning all faces using affine transforms using a fixed traingulation, and then averaging the pixels over all frames. This is the mean face I got. Creepy:</p>
+<img src="mean_face.jpg" height="600">
+<p>Here's some faces from the dataset morphed into the average shape.</p>
+<img src="dataset_meanmorphed_0.jpg" height="300">
+<img src="dataset_meanmorphed_1.jpg" height="300">
+<img src="dataset_meanmorphed_2.jpg" height="300">
+<img src="dataset_meanmorphed_3.jpg" height="300">
+
+<h4>My face morphed into the mean geometry.</h4>
+<img src="myface_meanmorphed.jpg" height="600">
+
+<h4>Mean face morphed into my geometry.</h4>
+<img src="meanface_mymorphed.jpg" height="600">
+
+<h2>Caricaturizing myself</h2>
+<p>To create a caricature of myself, I first computed top 4 of my keypoints that were the furthest from the population mean. I then exaggerated these keypoints by extrapolating them away from the mean value of those keypoints, thus highlighting those features. Here's the result</p>
+<img src="myface_caricature.jpg" height="600">
+
+<h2>Bells and Whistles - Meet Asian (Female) Romil!</h2>
+<p>I downloaded an average asian female face from the web and changed my face geometry and appearance to morph myself into an asian female.</p>
+<img src="myface_asian_shape.jpg" height="600">
+<img src="myface_asian_appearance.jpg" height="600">
+<img src="myface_asian_all.jpg" height="600">
+
+</body>
+</html>
