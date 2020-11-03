@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style>
+ .code {
+    width:700px;
+    height:500px;
+    overflow:auto;
+    outline:none;
+    resize:none;
+  }
+</style>
+
+<meta charset="UTF-8">
+<title>CS294-26 Project 4</title>
+</head>
+<body>
+<h2>CS294-26 Project 4: Facial Keypoint Detection with Neural Networks</h2>
+<p>Romil Bhardwaj</p>
+<h2>Part 1 - Nose Tip Detection</h2>
+<p>The first task is to detect nose tips in the IMMFace dataset. To do this, I wrote a Dataset class for the IMM Face dataset and normalized the inputs to -0.5 to 0.5 and resized them to a fixed resolution. Here are some of the images - blue points are all keypoints, and the red point are the nose keypoints (-6 index)</p>
+<img src="out_part1/input_0.jpg" height="300">
+<img src="out_part1/input_1.jpg" height="300">
+<img src="out_part1/input_2.jpg" height="300">
+<p>Then I wrote a convolutional neural network with 4 conv layers and 2 hidden layers. Here is the network architecture: </p>
+<textarea readonly class="code" style="height:200px">
+Net(
+  (conv1): Conv2d(1, 12, kernel_size=(7, 7), stride=(1, 1))
+  (conv2): Conv2d(12, 16, kernel_size=(5, 5), stride=(1, 1))
+  (conv3): Conv2d(16, 24, kernel_size=(3, 3), stride=(1, 1))
+  (conv4): Conv2d(24, 32, kernel_size=(3, 3), stride=(1, 1))
+  (fc1): Linear(in_features=32, out_features=32, bias=True)
+  (fc2): Linear(in_features=32, out_features=2, bias=True)
+)
+</textarea>
+<p>I trained this model with ADAM optimizer using a learning rate of 1e-4 and MSE Loss.</p>
+<img src="out_part1/loss.png" height="300">
+
+<h4>Cases where the network detects the nose correctly:</h4>
+<p><a style="color: blue">Blue</a> points are predicted nose points, <a style="color: red">Red</a> points are actual ground truth nose points.</p>
+
+<img src="out_part1/nose_pred_2.jpg" height="300">
+<img src="out_part1/nose_pred_3.jpg" height="300">
+
+<h4>Cases where the network does not detect the nose correctly:</h4>
+<img src="out_part1/nose_pred_0.jpg" height="300">
+<img src="out_part1/nose_pred_1.jpg" height="300">
+
+<p>The nose detector fails in the cases when the face pose changes or there is a significant change in appearance. This is likely because the model is overfitting to the training set and has "memorized" to predict in the middle.</p>
+
+<h2>Part 2 - Full Facial Keypoints Detection</h2>
+<p>The second task is to detect all keypoints on the face. Since the number of images in this dataset are limited and training for 58 keypoints requires a lot more samples, we generate some using the data augmentation. I used 3 augmentations <b>Rotation, Trasnlation, ColorJitter</b>, each having a probability p=0.8 of being invoked with a random rotation angle, shift and/or colorjitter. These transforms were composed with the pytorch transforms.compose method which makes it really easy to combine different transforms. Here are some examples. Note that I used mode='mirror' to fill in empty pixels left by rotation or translation.</p>
+<img src="out_part2/aug_0.jpg" height="300">
+<img src="out_part2/aug_1.jpg" height="300">
+<img src="out_part2/aug_2.jpg" height="300">
+
+<p>I then added more layers to my CNN architecture, making it a total of 6 conv layers and 2 hidden layers. I also increased the number of neurons in the hidden layers.</p>
+<textarea readonly class="code" style="height:300px">
+Net(
+  (conv1): Conv2d(1, 12, kernel_size=(7, 7), stride=(1, 1), padding=(1, 1))
+  (conv2): Conv2d(12, 16, kernel_size=(7, 7), stride=(1, 1), padding=(1, 1))
+  (conv3): Conv2d(16, 24, kernel_size=(5, 5), stride=(1, 1), padding=(1, 1))
+  (conv4): Conv2d(24, 32, kernel_size=(5, 5), stride=(1, 1), padding=(1, 1))
+  (conv5): Conv2d(32, 40, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (conv6): Conv2d(40, 48, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (fc1): Linear(in_features=48, out_features=512, bias=True)
+  (fc2): Linear(in_features=512, out_features=116, bias=True)
+)
+</textarea>
+<p>I trained with the same optimizer and learning rate as before, but I noticed a lot of my outputs were 0, while others were changing. To fix this, I added L2 regularization with weight decay = 1e-4 and used <b>LeakyReLU</b> instead of regular ReLU activation. LeakyReLU works better because it avoids "dead" ReLUs, where the gradient for negative inputs is 0. LeakyReLU has a very slight gradient for negative values which allows it recover from skewed weights.</p>
+<p>Finally I trained this model with ADAM optimizer using a learning rate of 1e-4, weight decay of 1e-5 and MSE Loss.</p>
+<img src="out_part2/loss.png" height="300">
+
+<h4>Cases where the network detects the keypoints correctly:</h4>
+<p><a style="color: blue">Blue</a> points are predicted points, <a style="color: red">Red</a> points are actual ground truth points.</p>
+
+<img src="out_part2/pred_5.jpg" height="300">
+<img src="out_part2/pred_3.jpg" height="300">
+
+<h4>Cases where the network does not detect the keypoints correctly:</h4>
+<img src="out_part2/pred_0.jpg" height="300">
+<img src="out_part2/pred_1.jpg" height="300">
+
+<p>The detector fails in these two cases because the pose of the face changes or the face differs from the population (in this case, slightly taller), which makes the network mis-predict the keypoints.</p>
+
+<p>Here is a visualization of the filters, produced by plotting the weight tensors of the filters. The earlier layers learn to detect higher level features, while the later layers detect finer details in the image.</p>
+<img src="out_part2/layer_conv1.jpg" width="400">
+<img src="out_part2/layer_conv2.jpg" width="400">
+<img src="out_part2/layer_conv3.jpg" width="400">
+<img src="out_part2/layer_conv4.jpg" width="400">
+<img src="out_part2/layer_conv5.jpg" width="400">
+<img src="out_part2/layer_conv6.jpg" width="400">
+
+<h2>Part 3 - Train With Larger Dataset</h2>
+<p>In this part, we train on the IBug dataset which has 6666 images with 68 keypoints for each image. While writing the dataloader, I realized the bounding boxes for this dataset can be very tight, leading to keypoints lying outside the cropped image. To fix, I rescaled the bounding boxes around the center by a factor of 1.4 to ensure most keypoints lie inside the cropped image. I used the same augmentations as before: <b>Rotation, Trasnlation, ColorJitter</b>, but trained for more epochs.</p>
+<p>Here are few sample images</p>
+<img src="out_part3/aug_4.jpg" height="300">
+<img src="out_part3/aug_44.jpg" height="300">
+<img src="out_part3/aug_22.jpg" height="300">
+<img src="out_part3/aug_98.jpg" height="300">
+<img src="out_part3/aug_103.jpg" height="300">
+
+<p>I used <b>ResNet50</b> and changed its first layer to accept 1 channel (gray) images and the output layer to output 136 values (68 keypoints x,y). Here is the architecture</p>
+<textarea readonly class="code" style="height:900px">
+ResNet(
+  (conv1): Conv2d(1, 64, kernel_size=(7, 7), stride=(1, 1))
+  (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+  (relu): ReLU(inplace=True)
+  (maxpool): MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
+  (layer1): Sequential(
+    (0): Bottleneck(
+      (conv1): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+      (downsample): Sequential(
+        (0): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+    (1): Bottleneck(
+      (conv1): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (2): Bottleneck(
+      (conv1): Conv2d(256, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(64, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+  )
+  (layer2): Sequential(
+    (0): Bottleneck(
+      (conv1): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+      (downsample): Sequential(
+        (0): Conv2d(256, 512, kernel_size=(1, 1), stride=(2, 2), bias=False)
+        (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+    (1): Bottleneck(
+      (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (2): Bottleneck(
+      (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (3): Bottleneck(
+      (conv1): Conv2d(512, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(128, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+  )
+  (layer3): Sequential(
+    (0): Bottleneck(
+      (conv1): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+      (downsample): Sequential(
+        (0): Conv2d(512, 1024, kernel_size=(1, 1), stride=(2, 2), bias=False)
+        (1): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+    (1): Bottleneck(
+      (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (2): Bottleneck(
+      (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (3): Bottleneck(
+      (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (4): Bottleneck(
+      (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (5): Bottleneck(
+      (conv1): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+  )
+  (layer4): Sequential(
+    (0): Bottleneck(
+      (conv1): Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+      (downsample): Sequential(
+        (0): Conv2d(1024, 2048, kernel_size=(1, 1), stride=(2, 2), bias=False)
+        (1): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+    (1): Bottleneck(
+      (conv1): Conv2d(2048, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (2): Bottleneck(
+      (conv1): Conv2d(2048, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv2): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+      (bn2): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (conv3): Conv2d(512, 2048, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (bn3): BatchNorm2d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+  )
+  (avgpool): AdaptiveAvgPool2d(output_size=(1, 1))
+  (fc): Linear(in_features=2048, out_features=136, bias=True)
+)
+</textarea>
+<p>I trained it using the ADAM optimizer with a learning rate of 1e-4 for 5 epochs. I obtained a <b>Kaggle Mean Absolute Error of 16.91509</b> on the test dataset.</p>
+<p>Here is a plot of the validation and training loss</p>
+<img src="out_part3/loss.png" height="300">
+<p>Here are visualizations of predictions on the test set.</p>
+<p><a style="color: blue">Blue</a> points are predicted points, <a style="color: red">Red</a> points are actual ground truth points.</p>
+<img src="out_part3/pred_0.jpg" height="300">
+<img src="out_part3/pred_1.jpg" height="300">
+<img src="out_part3/pred_2.jpg" height="300">
+<img src="out_part3/pred_3.jpg" height="300">
+<img src="out_part3/pred_4.jpg" height="300">
+<img src="out_part3/pred_5.jpg" height="300">
+
+<p>Finally, I ran the model on some of my own images. Here are the results:</p>
+<img src="out_part3/custom_1.jpg" height="300">
+<img src="out_part3/custom_2.jpg" height="300">
+<img src="out_part3/custom_3.jpg" height="300">
+<p>It worked well for mine and James May's face, but clearly it is not trained well for an alien species like Yoda :)</p>
+</body>
+</html>
