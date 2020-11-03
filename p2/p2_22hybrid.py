@@ -69,7 +69,7 @@ h = hybrid_image(im1, im2, gaussian_kernel, save_intermediates=False)
 skio.imsave("outputs/hybrid/palpatinekenobi.jpg", h)
 
 gaussian_kernel = get_gaussian(10, 5)
-im1 = skio.imread('imgs/hybrids/vader.jpg')
+im1 = skio.imread('imgs/hybrids/vader.jpg.jpg')
 im2 = skio.imread('imgs/hybrids/luke.jpg')
 h = hybrid_image(im1, im2, gaussian_kernel, save_intermediates=True)
 skio.imsave("outputs/hybrid/lukevader.jpg", h)

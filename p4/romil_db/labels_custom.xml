@@ -1,0 +1,18 @@
+<dataset>
+<name>Custom Photos</name>
+<comment>Romil's own photos</comment>
+<images>
+  <image file="romil.jpg">
+    <box height="250" left="125" top="75" width="250">
+      </box>
+  </image>
+  <image file="jamesmay.jpg">
+    <box height="350" left="110" top="75" width="300">
+      </box>
+  </image>
+  <image file="yoda.jpg">
+    <box height="574" left="0" top="0" width="768">
+      </box>
+  </image>
+</images>
+</dataset>
