@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<p lang="en">
 <head>
 <style>
  .code {
@@ -14,9 +14,9 @@
 <meta charset="UTF-8">
 <title>CS294-26 Project 5</title>
 </head>
-<>
 <h2>CS294-26 Project 5: Image Warping and Mosaicing</h2>
 <p>Romil Bhardwaj</p>
+<h2>Part A</h2>
 <h2>Shooting images and recovering homographies</h2>
 <p>The first task is to shoot the photos. It is important to ensure that the transforms between the two images are projective, so we need to avoid moving the camera (translation) and only rotate the camera on its axis. I used AE/AF lock to ensure the photos are taken with the same exposure settings. After taking the photos, the homographies define the transform p' = Hp. To find H, we need to setup a system of equations of the form Ah=b. Each point correspondence provides one equation, so we need atleast 4 points. For each image, I collected 10 correspondences, and then used np.linalg.lstsq() to solve the equations with least squares method. Here are my input images and their annotated points.</p>
 
@@ -59,6 +59,77 @@
 <h4>Kitchen</h4>
 <img src="outputs/kit_mosaic.jpg" height="600">
 
+<h1>Part B - Auto Mosaic</h1>
+<h2>Corner detection with Harris detector</h2>
+<p>First step in auto-mosaicing is to find the corners features in an image. This serves as the basis of feature points which we will filter, match and then get a homography from. We get these points using the harris edge detector.</p>
+<p>For my example, I got ~18000 corner pts, which basically covered my entire image.</p>
+
+<h4>Kitchen</h4>
+<img src="outputs/kit_harris1.jpg" height="600">
+<img src="outputs/kit_harris2.jpg" height="600">
+
+<h2>Adaptive Non-Maximal Suppression</h2>
+<p>Because the cost of matching features is a function of the number corner points that must be matched, we reduce the number of points to match with Adaptive Non-Maximal Suppression as described in the <a href="https://inst.eecs.berkeley.edu/~cs194-26/fa20/hw/proj5/Papers/MOPS.pdf">MOPS paper</a>.</p>
+<p>I used a start radius of 10px and incremented the radius by 7px at every iteration of ANMS. I used this to reduce the number of points from 18000 to ~500:</p>
+
+<h4>Kitchen</h4>
+<img src="outputs/kit_anms1.jpg" height="600">
+<img src="outputs/kit_anms2.jpg" height="600">
+
+<h2>Extracting and matching feature detectors</h2>
+<p>After reducing the number of points, we must match them to get a point correspondence between the two images. We do so by extracting 40x40 patches, blurring them with a gaussian kernel of sigma=3, resize it to 8x8 and compute the sum-of-square-distances for each pair of patches between the two images.</p>
+<p>Once we have an ordering of patches by their SSD, we compute the ratio of the 1-NN and 2-NN patches. If the ratio is less than 0.2, we add the two points to the correspondence set.</p>
+
+<p>After feature matching, these are the final set of candidate points.</p>
+<h4>Kitchen</h4>
+<img src="outputs/kit_featmatched1.jpg" height="600">
+<img src="outputs/kit_featmatched2.jpg" height="600">
+
+<h2>RANSAC and autostitching results.</h2>
+<p>Finally, to get the best homography, we use 4-point RANSAC. RANSAC randomly picks 4 points, computes their homography, and using this homography transforms all points and computes the number of inlier points produced by the homography. The homography with the most inlier points is selected as the final transform. My experiments use an episilon of 2px to classify inliers vs outliers.</p>
+<p>Here are the results of auto-stitching. Please zoom in to see the differences. Kitchen and Outdoors example performed well, but the indoor shelf example is a bit blurry. I believe it might be because of the poor contrast in most of the image which makes feature matching hard.</p>
+
+<h4>Kitchen</h4>
+<table>
+<tbody>
+<tr>
+<td><img src="outputs/kit_mosaic.jpg" height="600"></td>
+<td><img src="outputs/kit_mosaic_auto.jpg" height="600"></td>
+</tr>
+<tr>
+<td align="center"><b>Manual Mosaic</b></td>
+<td align="center"><b>Auto Mosaic</b></td>
+</tr>
+</tbody>
+</table>
+
+<h4>Outside</h4>
+<table>
+<tbody>
+<tr>
+<td><img src="outputs/out_mosaic.jpg" height="600"></td>
+<td><img src="outputs/out_mosaic_auto.jpg" height="600"></td>
+</tr>
+<tr>
+<td align="center"><b>Manual Mosaic</b></td>
+<td align="center"><b>Auto Mosaic</b></td>
+</tr>
+</tbody>
+</table>
+
+<h4>Shelf</h4>
+<table>
+<tbody>
+<tr>
+<td><img src="outputs/shelf_mosaic.jpg" height="600"></td>
+<td><img src="outputs/shelf_mosaic_auto.jpg" height="600"></td>
+</tr>
+<tr>
+<td align="center"><b>Manual Mosaic</b></td>
+<td align="center"><b>Auto Mosaic</b></td>
+</tr>
+</tbody>
+</table>
 <h2>What I learnt</h2>
 <p>Computing homographies is really cool! It allows you to change the perspective of the image. Homographic transforms probably have a big role to play in computer graphics too, where the camera and its position must be manipulated given a fixed image/texture on surfaces.</p>
 </body>
